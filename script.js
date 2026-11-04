@@ -3,16 +3,18 @@
 
 document.addEventListener("DOMContentLoaded", () => {
 
-  // ==========================================
-  // 1. ELEMENTS AND INITIAL SETUP
-  // ==========================================
+  // ========================================
+  // ELEMENTS AND SETTINGS
+  // ========================================
 
-  const $ = (id) => document.getElementById(id);
+  const $ = id => document.getElementById(id);
 
   const canvas = $("effects");
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas?.getContext("2d", {
+    alpha: true
+  });
 
-  const diyaGrid = $("diyaGrid");
+  const grid = $("diyaGrid");
   const diyaCount = $("diyaCount");
   const crackerCount = $("crackerCount");
   const continueBtn = $("continueBtn");
@@ -21,73 +23,92 @@ document.addEventListener("DOMContentLoaded", () => {
   const subtitle = $("subtitle");
   const greeting = $("greeting");
 
-  const colors = [
-    "#FFD700",
-    "#FF6B6B",
-    "#FF69B4",
-    "#00E5FF",
-    "#9AFF7A",
-    "#FFFFFF",
-    "#B388FF"
+  const required = [
+    canvas, ctx, grid, diyaCount,
+    crackerCount, continueBtn,
+    finalBtn, replayBtn,
+    subtitle, greeting
   ];
 
-  let particles = [];
-  let animations = [];
-  let timers = new Set();
-
-  let litCount = 0;
-  let triedCrackers = new Set();
-  let lastFrame = 0;
-
-  let audioCtx = null;
-
-  const random = (min, max) =>
-    min + Math.random() * (max - min);
-
-  const randomColor = () =>
-    colors[Math.floor(Math.random() * colors.length)];
-
-  // ==========================================
-  // 2. CANVAS SETUP
-  // ==========================================
-
-  function resizeCanvas() {
-    const dpr = Math.min(
-      window.devicePixelRatio || 1,
-      2
-    );
-
-    canvas.width = Math.round(
-      window.innerWidth * dpr
-    );
-
-    canvas.height = Math.round(
-      window.innerHeight * dpr
-    );
-
-    ctx.setTransform(
-      dpr, 0, 0, dpr, 0, 0
-    );
+  if (required.some(item => !item)) {
+    console.error("Missing Diwali HTML elements");
+    return;
   }
 
-  window.addEventListener("resize", resizeCanvas);
-  resizeCanvas();
+  const COLORS = [
+    "#ffd166", "#ff6b6b", "#ff65cf",
+    "#59dfff", "#9cff8b", "#ffffff",
+    "#b38aff"
+  ];
 
-  // ==========================================
-  // 3. TIMER MANAGEMENT
-  // ==========================================
+  const MOBILE = matchMedia("(max-width: 650px)");
 
-  function schedule(callback, delay) {
-    const id = window.setTimeout(() => {
+  const REDUCED_MOTION = matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  );
+
+  const MAX_PARTICLES = MOBILE.matches ? 280 : 550;
+
+  const rand = (a, b) =>
+    a + Math.random() * (b - a);
+
+  const color = () =>
+    COLORS[Math.floor(Math.random() * COLORS.length)];
+
+  let particles = [];
+  let emitters = [];
+  let rafId = 0;
+  let lastTime = 0;
+  let lit = 0;
+  let tried = new Set();
+  let timers = new Set();
+  let generation = 0;
+
+  // ========================================
+  // CANVAS RESOLUTION
+  // ========================================
+
+  function resize() {
+    const dpr = Math.min(
+      devicePixelRatio || 1,
+      MOBILE.matches ? 1.25 : 1.5
+    );
+
+    canvas.width = Math.round(innerWidth * dpr);
+    canvas.height = Math.round(innerHeight * dpr);
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+  }
+
+  addEventListener("resize", resize, {
+    passive: true
+  });
+
+  resize();
+
+  // ========================================
+  // TIMER MANAGEMENT
+  // ========================================
+
+  function later(fn, ms) {
+    const version = generation;
+
+    const id = setTimeout(() => {
       timers.delete(id);
-      callback();
-    }, delay);
+
+      if (version === generation) {
+        fn();
+      }
+    }, ms);
 
     timers.add(id);
-    return id;
   }
 
   function clearTimers() {
+    generation++;
+
     for (const id of timers) {
       clearTimeout(id);
     }
@@ -95,368 +116,356 @@ document.addEventListener("DOMContentLoaded", () => {
     timers.clear();
   }
 
-  // ==========================================
-  // 4. SOUND ENGINE
-  // ==========================================
+  // ========================================
+  // MOBILE AUDIO ENGINE
+  // ========================================
 
-  function getAudio() {
-    const AudioContextClass =
-      window.AudioContext ||
-      window.webkitAudioContext;
+  let audio = null;
+  let master = null;
+  let noiseBuffer = null;
 
-    if (!AudioContextClass) {
+  function unlockAudio() {
+    try {
+      const AudioClass =
+        window.AudioContext ||
+        window.webkitAudioContext;
+
+      if (!AudioClass) return null;
+
+      if (!audio) {
+        audio = new AudioClass();
+
+        master = audio.createGain();
+        master.gain.value = 0.35;
+        master.connect(audio.destination);
+
+        const length = audio.sampleRate;
+        noiseBuffer = audio.createBuffer(
+          1, length, audio.sampleRate
+        );
+
+        const data = noiseBuffer.getChannelData(0);
+
+        for (let i = 0; i < length; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+      }
+
+      if (audio.state === "suspended") {
+        audio.resume().catch(() => {});
+      }
+
+      return audio;
+    } catch (error) {
+      console.warn("Audio unavailable:", error);
       return null;
     }
-
-    if (!audioCtx) {
-      audioCtx = new AudioContextClass();
-    }
-
-    if (audioCtx.state === "suspended") {
-      audioCtx.resume().catch(() => {});
-    }
-
-    return audioCtx;
   }
 
-  function noiseSound(
-    duration = 0.2,
+  function tone(
+    from, to, duration,
     volume = 0.1,
-    frequency = 2000
+    type = "sine",
+    delay = 0
   ) {
-    const ac = getAudio();
-    if (!ac) return;
+    const ac = audio;
+    if (!ac || !master) return;
 
-    const sampleCount = Math.floor(
-      ac.sampleRate * duration
-    );
-
-    const buffer = ac.createBuffer(
-      1,
-      sampleCount,
-      ac.sampleRate
-    );
-
-    const data = buffer.getChannelData(0);
-
-    for (let i = 0; i < sampleCount; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
-
-    const source = ac.createBufferSource();
-    source.buffer = buffer;
-
-    const filter = ac.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.value = frequency;
-
+    const start = ac.currentTime + delay;
+    const oscillator = ac.createOscillator();
     const gain = ac.createGain();
-    const now = ac.currentTime;
+
+    oscillator.type = type;
+
+    oscillator.frequency.setValueAtTime(
+      Math.max(20, from), start
+    );
+
+    oscillator.frequency.exponentialRampToValueAtTime(
+      Math.max(20, to), start + duration
+    );
 
     gain.gain.setValueAtTime(
-      Math.max(0.001, volume),
-      now
+      Math.max(0.001, volume), start
     );
 
     gain.gain.exponentialRampToValueAtTime(
-      0.001,
-      now + duration
+      0.001, start + duration
+    );
+
+    oscillator.connect(gain);
+    gain.connect(master);
+
+    oscillator.start(start);
+    oscillator.stop(start + duration);
+  }
+
+  function noise(
+    duration = 0.25,
+    volume = 0.1,
+    frequency = 2500,
+    delay = 0
+  ) {
+    const ac = audio;
+    if (!ac || !noiseBuffer || !master) return;
+
+    const start = ac.currentTime + delay;
+    const source = ac.createBufferSource();
+    const filter = ac.createBiquadFilter();
+    const gain = ac.createGain();
+
+    source.buffer = noiseBuffer;
+
+    filter.type = "lowpass";
+    filter.frequency.value = frequency;
+
+    gain.gain.setValueAtTime(
+      Math.max(0.001, volume), start
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+      0.001, start + duration
     );
 
     source.connect(filter);
     filter.connect(gain);
-    gain.connect(ac.destination);
+    gain.connect(master);
 
-    source.start(now);
-    source.stop(now + duration);
+    source.start(start);
+    source.stop(start + duration);
   }
 
-  function toneSound(
-    startFreq,
-    endFreq,
-    duration,
-    volume = 0.08,
-    wave = "sine"
-  ) {
-    const ac = getAudio();
-    if (!ac) return;
+  function sound(type) {
+    if (!audio) return;
 
-    const oscillator = ac.createOscillator();
-    const gain = ac.createGain();
-    const now = ac.currentTime;
+    switch (type) {
+      case "diya":
+        tone(650, 1100, 0.18, 0.07);
+        tone(1100, 1500, 0.25, 0.035);
+        break;
 
-    oscillator.type = wave;
+      case "rocket":
+        tone(180, 1700, 0.9, 0.08, "sawtooth");
+        noise(0.7, 0.045, 2200);
+        break;
 
-    oscillator.frequency.setValueAtTime(
-      startFreq,
-      now
-    );
+      case "explosion":
+        noise(0.55, 0.42, 1300);
+        tone(110, 35, 0.55, 0.23);
+        break;
 
-    oscillator.frequency.exponentialRampToValueAtTime(
-      Math.max(20, endFreq),
-      now + duration
-    );
+      case "chakri":
+        tone(260, 900, 1.2, 0.07, "sawtooth");
+        noise(1.2, 0.08, 4000);
+        break;
 
-    gain.gain.setValueAtTime(
-      Math.max(0.001, volume),
-      now
-    );
+      case "sparkler":
+        for (let i = 0; i < 14; i++) {
+          noise(
+            0.06,
+            rand(0.035, 0.075),
+            5500,
+            i * 0.09
+          );
+        }
+        break;
 
-    gain.gain.exponentialRampToValueAtTime(
-      0.001,
-      now + duration
-    );
+      case "anaar":
+        noise(1.6, 0.13, 5000);
+        tone(700, 250, 1.5, 0.04);
+        break;
 
-    oscillator.connect(gain);
-    gain.connect(ac.destination);
-
-    oscillator.start(now);
-    oscillator.stop(now + duration);
-  }
-
-  function playDiyaSound() {
-    toneSound(700, 1100, 0.18, 0.04);
-    toneSound(1100, 1500, 0.25, 0.025);
-  }
-
-  function playRocketLaunch() {
-    toneSound(
-      180, 1600, 1.0, 0.07, "sawtooth"
-    );
-    noiseSound(0.7, 0.06, 2500);
-  }
-
-  function playExplosion() {
-    noiseSound(0.65, 0.25, 1300);
-    toneSound(120, 35, 0.6, 0.15);
-  }
-
-  function playChakriSound() {
-    toneSound(
-      260, 900, 1.3, 0.07, "sawtooth"
-    );
-    noiseSound(1.3, 0.07, 4200);
-  }
-
-  function playSparklerSound() {
-    for (let i = 0; i < 14; i++) {
-      schedule(() => {
-        noiseSound(
-          0.06,
-          random(0.025, 0.07),
-          6000
-        );
-      }, i * 110);
+      case "bomb":
+        noise(0.7, 0.5, 900);
+        tone(125, 30, 0.7, 0.28);
+        noise(0.3, 0.13, 3500, 0.25);
+        break;
     }
   }
 
-  function playAnaarSound() {
-    noiseSound(1.8, 0.11, 5000);
-    toneSound(700, 250, 1.7, 0.035);
-  }
+  // ========================================
+  // PARTICLE SYSTEM
+  // ========================================
 
-  function playBombSound() {
-    playExplosion();
-
-    schedule(() => {
-      noiseSound(0.35, 0.13, 3500);
-    }, 250);
-  }
-
-  // ==========================================
-  // 5. PARTICLE SYSTEM
-  // ==========================================
-
-  function createParticle(
-    x,
-    y,
-    vx,
-    vy,
-    color,
-    life = 65,
+  function particle(
+    x, y, vx, vy, shade,
+    life = 60,
     size = 2,
-    gravity = 0.07
+    gravity = 0.06
   ) {
+    if (particles.length >= MAX_PARTICLES) {
+      return;
+    }
+
     particles.push({
-      x,
-      y,
-      vx,
-      vy,
-      color,
+      x, y, vx, vy,
+      shade,
       life,
       maxLife: life,
       size,
       gravity
     });
 
-    // Prevent excessive particles on mobile.
-    if (particles.length > 1600) {
-      particles.splice(
-        0,
-        particles.length - 1600
-      );
-    }
+    startLoop();
   }
 
-  function burst(
-    x,
-    y,
-    count = 80,
-    power = 5
-  ) {
+  function burst(x, y, count = 70, power = 5) {
+    if (REDUCED_MOTION.matches) {
+      count = Math.min(count, 15);
+    }
+
     for (let i = 0; i < count; i++) {
       const angle =
-        (Math.PI * 2 * i) / count +
-        random(-0.1, 0.1);
+        Math.PI * 2 * i / count;
 
-      const speed = random(
-        power * 0.4,
-        power
-      );
+      const speed = rand(power * 0.4, power);
 
-      createParticle(
-        x,
-        y,
+      particle(
+        x, y,
         Math.cos(angle) * speed,
         Math.sin(angle) * speed,
-        randomColor(),
-        random(40, 90),
-        random(1.5, 3),
-        0.055
+        color(),
+        rand(35, 70),
+        rand(1.3, 2.7)
       );
     }
   }
 
-  function goldenBurst(
-    x,
-    y,
-    count = 30,
-    power = 4
-  ) {
+  function golden(x, y, count = 24) {
     for (let i = 0; i < count; i++) {
-      const angle = random(
-        0,
-        Math.PI * 2
-      );
+      const angle = rand(0, Math.PI * 2);
+      const speed = rand(0.5, 3.5);
 
-      const speed = random(0.5, power);
-
-      createParticle(
-        x,
-        y,
+      particle(
+        x, y,
         Math.cos(angle) * speed,
         Math.sin(angle) * speed,
-        "#FFD166",
-        random(25, 55),
-        random(1, 3)
+        "#ffd166",
+        rand(20, 45),
+        rand(1, 2.5)
       );
     }
   }
 
-  // ==========================================
-  // 6. ANIMATION LOOP
-  // ==========================================
+  // ========================================
+  // ON-DEMAND ANIMATION ENGINE
+  // ========================================
 
-  function animate(timestamp) {
-    const dt = Math.min(
-      (timestamp - lastFrame) / 16.67 || 1,
-      2
-    );
+  function startLoop() {
+    if (rafId || document.hidden) return;
 
-    lastFrame = timestamp;
+    lastTime = 0;
+    rafId = requestAnimationFrame(frame);
+  }
+
+  function frame(time) {
+    rafId = 0;
+
+    if (document.hidden) {
+      lastTime = 0;
+      return;
+    }
+
+    const dt = lastTime
+      ? Math.min((time - lastTime) / 16.667, 2)
+      : 1;
+
+    lastTime = time;
 
     ctx.clearRect(
-      0,
-      0,
-      window.innerWidth,
-      window.innerHeight
+      0, 0, innerWidth, innerHeight
     );
 
     ctx.globalCompositeOperation = "lighter";
 
-    for (const p of particles) {
+    // Update emitters before rendering particles.
+    for (let i = emitters.length - 1; i >= 0; i--) {
+      if (emitters[i](dt) === false) {
+        emitters.splice(i, 1);
+      }
+    }
+
+    let write = 0;
+
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-
       p.vy += p.gravity * dt;
-      p.vx *= 0.993;
-
+      p.vx *= Math.pow(0.993, dt);
       p.life -= dt;
 
-      ctx.globalAlpha = Math.max(
-        0,
-        p.life / p.maxLife
-      );
+      if (p.life <= 0) continue;
 
-      ctx.fillStyle = p.color;
+      ctx.globalAlpha = p.life / p.maxLife;
+      ctx.fillStyle = p.shade;
 
-      ctx.shadowBlur = 8;
-      ctx.shadowColor = p.color;
-
-      ctx.beginPath();
-      ctx.arc(
-        p.x,
-        p.y,
+      // No expensive canvas shadows.
+      ctx.fillRect(
+        p.x - p.size / 2,
+        p.y - p.size / 2,
         p.size,
-        0,
-        Math.PI * 2
+        p.size
       );
-      ctx.fill();
+
+      particles[write++] = p;
     }
 
-    particles = particles.filter(
-      p => p.life > 0
-    );
+    particles.length = write;
 
-    ctx.shadowBlur = 0;
     ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
 
-    for (const animation of [...animations]) {
-      animation(dt);
+    // Stop completely when nothing is animating.
+    if (particles.length || emitters.length) {
+      rafId = requestAnimationFrame(frame);
+    } else {
+      lastTime = 0;
+      ctx.clearRect(
+        0, 0, innerWidth, innerHeight
+      );
     }
-
-    ctx.globalCompositeOperation =
-      "source-over";
-
-    requestAnimationFrame(animate);
   }
 
-  requestAnimationFrame(animate);
+  document.addEventListener(
+    "visibilitychange",
+    () => {
+      if (document.hidden) {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = 0;
+        lastTime = 0;
+      } else if (particles.length || emitters.length) {
+        startLoop();
+      }
+    }
+  );
 
-  // ==========================================
-  // 7. SCENE MANAGEMENT
-  // ==========================================
+  // ========================================
+  // SCENE MANAGEMENT
+  // ========================================
 
-  function showScene(sceneId) {
-    document.querySelectorAll(".scene")
-      .forEach(scene => {
-        const active = scene.id === sceneId;
+  function showScene(id) {
+    document.querySelectorAll(".scene").forEach(el => {
+      const active = el.id === id;
 
-        scene.classList.toggle(
-          "active",
-          active
-        );
-
-        scene.classList.toggle(
-          "hidden",
-          !active
-        );
-      });
+      el.classList.toggle("active", active);
+      el.classList.toggle("hidden", !active);
+    });
   }
 
-  // ==========================================
-  // 8. INTERACTIVE DIYAS
-  // ==========================================
+  // ========================================
+  // DIYA INTERACTIONS
+  // ========================================
 
   function createDiyas() {
-    diyaGrid.innerHTML = "";
+    grid.innerHTML = "";
 
     for (let i = 0; i < 7; i++) {
       const diya = document.createElement("button");
 
       diya.type = "button";
       diya.className = "diya";
-
       diya.setAttribute(
         "aria-label",
         `Light diya ${i + 1}`
@@ -469,380 +478,299 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
 
       diya.addEventListener("click", () => {
-        if (diya.classList.contains("lit")) {
-          return;
-        }
+        if (diya.classList.contains("lit")) return;
 
-        getAudio();
-        playDiyaSound();
+        unlockAudio();
+        sound("diya");
 
         diya.classList.add("lit");
-
         diya.setAttribute(
           "aria-label",
-          `Diya ${i + 1} is lit`
+          `Diya ${i + 1} lit`
         );
 
-        litCount++;
+        lit++;
+        diyaCount.textContent = lit;
 
-        diyaCount.textContent = litCount;
+        const r = diya.getBoundingClientRect();
 
-        const rect =
-          diya.getBoundingClientRect();
-
-        goldenBurst(
-          rect.left + rect.width / 2,
-          rect.top + rect.height * 0.35,
-          35,
-          3
+        golden(
+          r.left + r.width / 2,
+          r.top + r.height * 0.4,
+          22
         );
 
-        if (litCount === 7) {
+        if (lit === 7) {
           subtitle.textContent =
             "All seven diyas are glowing! ✨";
 
-          continueBtn.classList.remove(
-            "hidden"
-          );
+          continueBtn.classList.remove("hidden");
 
-          goldenBurst(
-            window.innerWidth / 2,
-            window.innerHeight * 0.35,
-            100,
-            6
+          burst(
+            innerWidth / 2,
+            innerHeight * 0.4,
+            65,
+            4
           );
         }
       });
 
-      diyaGrid.appendChild(diya);
+      grid.appendChild(diya);
     }
   }
 
-  // ==========================================
-  // 9. ROCKET FIRECRACKER
-  // ==========================================
+  // ========================================
+  // FIRECRACKER EFFECTS
+  // ========================================
 
-  function launchRocket() {
-    playRocketLaunch();
+  function rocket() {
+    sound("rocket");
 
-    const x = random(
-      window.innerWidth * 0.25,
-      window.innerWidth * 0.75
+    const x = rand(
+      innerWidth * 0.3,
+      innerWidth * 0.7
     );
 
-    let y = window.innerHeight + 20;
+    let y = innerHeight + 10;
+    const target = innerHeight * 0.25;
 
-    const targetY = window.innerHeight * 0.25;
+    emitters.push(dt => {
+      y -= 11 * dt;
 
-    const rocketAnimation = (dt) => {
-      y -= 10 * dt;
-
-      // Rocket trail
-      for (let i = 0; i < 5; i++) {
-        createParticle(
-          x + random(-5, 5),
-          y + 12,
-          random(-1, 1),
-          random(1, 3),
-          "#FFB347",
-          25,
+      for (let i = 0; i < 3; i++) {
+        particle(
+          x + rand(-3, 3),
+          y + 10,
+          rand(-1, 1),
+          rand(1, 3),
+          "#ffb347",
+          22,
           2
         );
       }
 
-      if (y <= targetY) {
-        animations = animations.filter(
-          a => a !== rocketAnimation
-        );
+      if (y <= target) {
+        burst(x, y, 85, 6);
+        sound("explosion");
 
-        burst(x, y, 140, 7);
-        playExplosion();
+        later(() => {
+          burst(x + 35, y + 30, 45, 4);
+        }, 200);
 
-        schedule(() => {
-          burst(
-            x + 45,
-            y + 35,
-            65,
-            4
-          );
-        }, 250);
+        return false;
       }
-    };
 
-    animations.push(rocketAnimation);
+      return true;
+    });
+
+    startLoop();
   }
 
-  // ==========================================
-  // 10. CHAKRI FIRECRACKER
-  // ==========================================
+  function chakri(x, y) {
+    sound("chakri");
 
-  function launchChakri(x, y) {
-    playChakriSound();
+    let progress = 0;
 
-    let frame = 0;
+    emitters.push(dt => {
+      progress += dt;
 
-    const chakriAnimation = (dt) => {
-      frame += dt;
-
-      for (let i = 0; i < 7; i++) {
+      for (let i = 0; i < 4; i++) {
         const angle =
-          frame * 0.28 +
-          i * Math.PI * 2 / 7;
+          progress * 0.3 +
+          i * Math.PI / 2;
 
-        createParticle(
-          x + Math.cos(angle) * 25,
-          y + Math.sin(angle) * 25,
-          Math.cos(angle) * random(3, 7),
-          Math.sin(angle) * random(3, 7),
-          colors[i % colors.length],
-          random(25, 50),
+        particle(
+          x + Math.cos(angle) * 20,
+          y + Math.sin(angle) * 20,
+          Math.cos(angle) * rand(2, 5),
+          Math.sin(angle) * rand(2, 5),
+          COLORS[i],
+          30,
           2
         );
       }
 
-      if (frame > 100) {
-        animations = animations.filter(
-          a => a !== chakriAnimation
-        );
+      return progress < 80;
+    });
 
-        goldenBurst(x, y, 55, 4);
-      }
-    };
-
-    animations.push(chakriAnimation);
+    startLoop();
   }
 
-  // ==========================================
-  // 11. PHULJHADI FIRECRACKER
-  // ==========================================
+  function sparkler(x, y) {
+    sound("sparkler");
 
-  function launchSparkler(x, y) {
-    playSparklerSound();
+    let progress = 0;
 
-    let frame = 0;
+    emitters.push(dt => {
+      progress += dt;
 
-    const sparklerAnimation = (dt) => {
-      frame += dt;
+      for (let i = 0; i < 5; i++) {
+        const angle = rand(0, Math.PI * 2);
+        const speed = rand(1, 4);
 
-      for (let i = 0; i < 9; i++) {
-        const angle = random(
-          0,
-          Math.PI * 2
-        );
-
-        const speed = random(0.5, 5);
-
-        createParticle(
-          x,
-          y,
+        particle(
+          x, y,
           Math.cos(angle) * speed,
           Math.sin(angle) * speed,
-          "#FFE9A6",
-          random(15, 55),
-          random(1, 2.5),
-          0.09
+          "#ffe8a0",
+          rand(18, 38),
+          2
         );
       }
 
-      if (frame > 130) {
-        animations = animations.filter(
-          a => a !== sparklerAnimation
-        );
-      }
-    };
+      return progress < 85;
+    });
 
-    animations.push(sparklerAnimation);
+    startLoop();
   }
 
-  // ==========================================
-  // 12. ANAAR FIRECRACKER
-  // ==========================================
+  function anaar(x, y) {
+    sound("anaar");
 
-  function launchAnaar(x, y) {
-    playAnaarSound();
+    let progress = 0;
 
-    let frame = 0;
+    emitters.push(dt => {
+      progress += dt;
 
-    const anaarAnimation = (dt) => {
-      frame += dt;
-
-      for (let i = 0; i < 10; i++) {
-        createParticle(
-          x + random(-8, 8),
+      for (let i = 0; i < 6; i++) {
+        particle(
+          x + rand(-6, 6),
           y,
-          random(-4.5, 4.5),
-          random(-11, -5),
-          randomColor(),
-          random(45, 85),
-          random(1.3, 3),
+          rand(-3.5, 3.5),
+          rand(-9, -5),
+          color(),
+          rand(40, 65),
+          2,
           0.18
         );
       }
 
-      if (frame > 130) {
-        animations = animations.filter(
-          a => a !== anaarAnimation
-        );
-      }
-    };
-
-    animations.push(anaarAnimation);
-  }
-
-  // ==========================================
-  // 13. BOMB FIRECRACKER
-  // ==========================================
-
-  function launchBomb(x, y) {
-    playBombSound();
-
-    burst(x, y, 180, 9);
-
-    schedule(() => {
-      burst(
-        x - 75,
-        y - 70,
-        80,
-        5
-      );
-
-      burst(
-        x + 75,
-        y - 70,
-        80,
-        5
-      );
-    }, 300);
-
-    schedule(() => {
-      goldenBurst(
-        x,
-        y - 110,
-        120,
-        7
-      );
-    }, 650);
-  }
-
-  // ==========================================
-  // 14. FIRECRACKER BUTTON EVENTS
-  // ==========================================
-
-  document.querySelectorAll(".cracker")
-    .forEach(button => {
-
-      button.addEventListener("click", () => {
-        // Unlock audio on mobile
-        getAudio();
-
-        const type = button.dataset.type;
-
-        const rect =
-          button.getBoundingClientRect();
-
-        const x = rect.left + rect.width / 2;
-        const y = rect.top + rect.height / 2;
-
-        switch (type) {
-          case "rocket":
-            launchRocket();
-            break;
-
-          case "chakri":
-            launchChakri(x, y);
-            break;
-
-          case "sparkler":
-            launchSparkler(x, y);
-            break;
-
-          case "anaar":
-            launchAnaar(x, y);
-            break;
-
-          case "bomb":
-            launchBomb(x, y);
-            break;
-        }
-
-        button.classList.add("used");
-
-        triedCrackers.add(type);
-
-        crackerCount.textContent =
-          triedCrackers.size;
-
-        if (triedCrackers.size === 5) {
-          finalBtn.classList.remove(
-            "hidden"
-          );
-        }
-      });
+      return progress < 90;
     });
 
-  // ==========================================
-  // 15. CONTINUE TO FIREWORKS
-  // ==========================================
+    startLoop();
+  }
+
+  function bomb(x, y) {
+    sound("bomb");
+
+    burst(x, y, 105, 8);
+
+    later(() => {
+      burst(x - 45, y - 65, 45, 4);
+      burst(x + 45, y - 65, 45, 4);
+    }, 300);
+  }
+
+  // ========================================
+  // FIRECRACKER BUTTONS
+  // ========================================
+
+  document.querySelectorAll(".cracker").forEach(btn => {
+    btn.addEventListener("click", () => {
+      unlockAudio();
+
+      const type = btn.dataset.type;
+      const r = btn.getBoundingClientRect();
+
+      const x = r.left + r.width / 2;
+      const y = r.top + r.height / 2;
+
+      switch (type) {
+        case "rocket":
+          rocket();
+          break;
+        case "chakri":
+          chakri(x, y);
+          break;
+        case "sparkler":
+          sparkler(x, y);
+          break;
+        case "anaar":
+          anaar(x, y);
+          break;
+        case "bomb":
+          bomb(x, y);
+          break;
+      }
+
+      btn.classList.add("used");
+      tried.add(type);
+
+      crackerCount.textContent = tried.size;
+
+      if (tried.size === 5) {
+        finalBtn.classList.remove("hidden");
+      }
+    });
+  });
+
+  // ========================================
+  // CONTINUE AND FINAL GREETING
+  // ========================================
 
   continueBtn.addEventListener("click", () => {
-    getAudio();
-
     showScene("crackerScene");
-
     subtitle.textContent =
       "Tap the firecrackers and enjoy the magic!";
   });
 
-  // ==========================================
-  // 16. FINAL DIWALI SURPRISE
-  // ==========================================
-
   finalBtn.addEventListener("click", () => {
+    clearTimers();
+
+    emitters = [];
+    particles = [];
+
     showScene("finalScene");
 
-    const params = new URLSearchParams(
-      window.location.search
-    );
-
-    const name = params.get("name");
+    const name = new URLSearchParams(
+      location.search
+    ).get("name");
 
     greeting.textContent = name
       ? `Happy Diwali, ${name.slice(0, 35)}! ❤️`
       : "Happy Diwali! ❤️";
 
-    for (let i = 0; i < 6; i++) {
-      schedule(() => {
-        const x = random(
-          window.innerWidth * 0.15,
-          window.innerWidth * 0.85
-        );
+    unlockAudio();
 
-        const y = random(
-          window.innerHeight * 0.15,
-          window.innerHeight * 0.55
+    for (let i = 0; i < 5; i++) {
+      later(() => {
+        burst(
+          rand(innerWidth * 0.2, innerWidth * 0.8),
+          rand(innerHeight * 0.15, innerHeight * 0.5),
+          65,
+          5
         );
-
-        burst(x, y, 100, random(4, 7));
 
         if (i % 2 === 0) {
-          playExplosion();
+          sound("explosion");
         }
-      }, i * 450);
+      }, i * 400);
     }
   });
 
-  // ==========================================
-  // 17. REPLAY EVERYTHING
-  // ==========================================
+  // ========================================
+  // RESET AND REPLAY
+  // ========================================
 
-  function resetGame() {
+  function reset() {
     clearTimers();
 
-    animations = [];
-    particles = [];
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = 0;
+    }
 
-    litCount = 0;
-    triedCrackers.clear();
+    particles = [];
+    emitters = [];
+    lastTime = 0;
+
+    ctx.clearRect(
+      0, 0, innerWidth, innerHeight
+    );
+
+    lit = 0;
+    tried.clear();
 
     diyaCount.textContent = "0";
     crackerCount.textContent = "0";
@@ -853,21 +781,15 @@ document.addEventListener("DOMContentLoaded", () => {
     continueBtn.classList.add("hidden");
     finalBtn.classList.add("hidden");
 
-    document.querySelectorAll(".cracker")
-      .forEach(button => {
-        button.classList.remove("used");
-      });
+    document.querySelectorAll(".cracker").forEach(btn => {
+      btn.classList.remove("used");
+    });
 
     createDiyas();
     showScene("diyaScene");
   }
 
-  replayBtn.addEventListener("click", resetGame);
+  replayBtn.addEventListener("click", reset);
 
-  // ==========================================
-  // 18. START THE GAME
-  // ==========================================
-
-  resetGame();
-
+  reset();
 });
