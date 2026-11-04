@@ -1,22 +1,40 @@
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
 
+/* =========================================
+   GLOBAL SETTINGS
+========================================= */
+
 :root {
   color-scheme: dark;
   --gold: #ffd68b;
   --muted: #c7b9d8;
+  --purple: #39215b;
+  --dark: #0e071e;
+  --pink: #ff8f9e;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
-html, body {
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+html,
+body {
   margin: 0;
+  width: 100%;
   min-height: 100%;
   font-family: 'DM Sans', sans-serif;
 }
 
 body {
-  color: #fff;
+  min-height: 100vh;
+  min-height: 100dvh;
+  color: #ffffff;
   background: radial-gradient(
     ellipse at 50% 0%,
     #39215b 0%,
@@ -26,17 +44,25 @@ body {
   overflow-x: hidden;
 }
 
+/* Decorative star background */
+
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
-  opacity: .4;
+  opacity: 0.4;
   background-image: radial-gradient(
-    #ffe9c6 1px, transparent 1px
+    #ffe9c6 1px,
+    transparent 1px
   );
   background-size: 48px 48px;
+  z-index: 0;
 }
+
+/* =========================================
+   FIREWORKS CANVAS
+========================================= */
 
 #effects {
   position: fixed;
@@ -46,30 +72,45 @@ body::before {
   z-index: 4;
   pointer-events: none;
 }
+
+/* =========================================
+   MAIN APPLICATION
+========================================= */
+
 .app {
   position: relative;
+  z-index: 1;
+  width: 100%;
   max-width: 900px;
   min-height: 100vh;
-  margin: auto;
-  padding: 40px 20px 24px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 40px 20px 28px;
   text-align: center;
+
   display: flex;
   flex-direction: column;
 }
 
+/* =========================================
+   HEADER
+========================================= */
+
 header {
   position: relative;
   z-index: 2;
+  flex-shrink: 0;
 }
 
 .eyebrow {
   color: #d7aaff;
   font-size: 11px;
-  letter-spacing: .26em;
+  letter-spacing: 0.26em;
   font-weight: 700;
 }
 
-h1, h2 {
+h1,
+h2 {
   font-family: 'Playfair Display', Georgia, serif;
   color: var(--gold);
   text-shadow: 0 0 32px #ff9e4b44;
@@ -77,43 +118,59 @@ h1, h2 {
 
 h1 {
   font-size: clamp(32px, 6vw, 55px);
+  line-height: 1.2;
   margin: 18px 0 12px;
 }
 
 header p {
   color: var(--muted);
   font-size: 15px;
+  line-height: 1.6;
   margin: 0 auto 16px;
   max-width: 500px;
-  line-height: 1.6;
 }
 
-.progress {
-  display: inline-block;
-  padding: 8px 16px;
-  border: 1px solid #b98cda55;
-  border-radius: 50px;
-  color: #e5c8ff;
-  background: #ffffff0a;
-  font-size: 12px;
-}
+/* =========================================
+   SCENES
+========================================= */
 
 .scene {
   flex: 1;
+  width: 100%;
+  min-height: 390px;
+
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 26px;
-  min-height: 390px;
-  animation: appear .5s ease;
+
+  animation: appear 0.5s ease;
 }
 
-.hidden {
+.hidden,
+.scene:not(.active) {
   display: none !important;
 }
 
-/* Interactive diyas */
+/* =========================================
+   DIYA COUNTER
+========================================= */
+
+.counter {
+  display: inline-block;
+  padding: 10px 20px;
+  border: 1px solid #ffd68b55;
+  border-radius: 50px;
+  color: #ffe0a6;
+  background: #ffffff0d;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* =========================================
+   DIYA GRID
+========================================= */
 
 .diya-grid {
   display: flex;
@@ -121,43 +178,66 @@ header p {
   align-items: center;
   flex-wrap: wrap;
   gap: 16px;
+  width: 100%;
   max-width: 690px;
   padding: 25px 5px;
 }
+
+/* =========================================
+   DIYA DESIGN
+========================================= */
 
 .diya {
   position: relative;
   width: 110px;
   height: 120px;
+  flex-shrink: 0;
+
   background: transparent;
-  border: 0;
+  border: none;
+  padding: 0;
   cursor: pointer;
-  transition: transform .25s;
+
+  transition: transform 0.25s ease;
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .diya:hover {
   transform: translateY(-5px);
 }
 
-.diya:focus-visible,
-.cracker:focus-visible,
-.primary:focus-visible {
-  outline: 3px solid #fff;
-  outline-offset: 5px;
+.diya:active {
+  transform: scale(0.95);
 }
+
+/* Clay bowl */
 
 .diya .bowl {
   position: absolute;
   bottom: 18px;
   left: 12px;
+
   width: 86px;
   height: 39px;
+
   border-radius: 8px 8px 50px 50px;
-  background: linear-gradient(#8d4b36, #5a2637);
+
+  background: linear-gradient(
+    180deg,
+    #8d4b36,
+    #5a2637
+  );
+
   border-top: 5px solid #bd7960;
   box-shadow: 0 9px 13px #0006;
+
+  transition:
+    background 0.3s ease,
+    box-shadow 0.3s ease;
 }
+
+/* Bowl decoration */
 
 .diya .bowl::after {
   content: '✦';
@@ -165,101 +245,202 @@ header p {
   left: 36px;
   top: 10px;
   color: #f7b16c;
+  font-size: 15px;
 }
+
+/* Wick */
 
 .diya .wick {
   position: absolute;
   bottom: 60px;
   left: 52px;
+
   width: 6px;
   height: 16px;
+
   background: #34232a;
   border-radius: 4px;
   transform: rotate(-7deg);
 }
 
+/* Flame */
+
 .diya .flame {
   position: absolute;
   left: 42px;
   bottom: 65px;
+
   width: 26px;
   height: 43px;
+
   border-radius: 70% 10% 65% 50%;
+
   transform: rotate(45deg) scale(0);
+  transform-origin: center bottom;
+
   background: linear-gradient(
     135deg,
     #fff7ae 15%,
     #ffd153 45%,
     #ff6b24 80%
   );
+
   box-shadow:
     0 0 24px #ff9e36,
     0 0 55px #ff9e3677;
-  transition: transform .4s cubic-bezier(.18,1.5,.4,1);
+
+  transition: transform 0.4s
+    cubic-bezier(0.18, 1.5, 0.4, 1);
 }
+
+/* Lit diya */
 
 .diya.lit .flame {
   transform: rotate(45deg) scale(1);
-  animation: flicker 1.5s ease-in-out infinite alternate;
+  animation: flicker 1.5s ease-in-out
+    infinite alternate;
 }
 
 .diya.lit .bowl {
-  background: linear-gradient(#d77c3d, #8d3040);
+  background: linear-gradient(
+    180deg,
+    #d77c3d,
+    #8d3040
+  );
+
   box-shadow:
     0 0 35px #ffad4644,
     0 9px 13px #0006;
 }
 
+.diya.lit {
+  filter: drop-shadow(0 0 12px #ffab4555);
+}
+
+/* =========================================
+   HINT TEXT
+========================================= */
+
 .hint {
   color: #c5b3d9;
   font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
 }
 
-/* Buttons */
+/* =========================================
+   BUTTONS
+========================================= */
 
 .primary {
-  border: 0;
+  border: none;
   border-radius: 40px;
-  background: linear-gradient(100deg,#ffce74,#ff8f65);
+
+  background: linear-gradient(
+    100deg,
+    #ffce74,
+    #ff8f65
+  );
+
   color: #341633;
+  font-family: inherit;
   font-weight: 700;
   font-size: 15px;
+
   padding: 15px 29px;
+  min-height: 50px;
+
   cursor: pointer;
+
   box-shadow: 0 8px 30px #ffab5b44;
-  transition: transform .2s;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .primary:hover {
   transform: scale(1.04);
+  box-shadow: 0 10px 35px #ffab5b66;
 }
 
-/* Firecrackers */
+.primary:active {
+  transform: scale(0.97);
+}
+
+button:focus-visible {
+  outline: 3px solid white;
+  outline-offset: 4px;
+}
+
+/* =========================================
+   FIRECRACKER SCENE
+========================================= */
+
+#crackerScene h2 {
+  font-size: clamp(34px, 6vw, 55px);
+  line-height: 1.2;
+  margin: 0;
+}
+
+#crackerScene > p {
+  color: #d8c7e9;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* =========================================
+   FIRECRACKER GRID
+========================================= */
 
 .cracker-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(
+    5,
+    minmax(0, 1fr)
+  );
+
   gap: 13px;
   width: 100%;
 }
 
+/* Firecracker cards */
+
 .cracker {
+  position: relative;
+
+  min-width: 0;
   min-height: 164px;
+
   border: 1px solid #a87acc55;
-  background: linear-gradient(155deg,#50336a99,#28163e99);
-  color: white;
   border-radius: 18px;
+
+  background: linear-gradient(
+    155deg,
+    #50336a99,
+    #28163e99
+  );
+
+  color: white;
+  font-family: inherit;
+
   padding: 18px 8px;
   cursor: pointer;
+
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
   gap: 8px;
+
   transition:
-    transform .2s,
-    border-color .2s,
-    background .2s;
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .cracker:hover {
@@ -267,17 +448,34 @@ header p {
   border-color: #ffc579;
 }
 
-.cracker span { font-size: 44px; }
-.cracker b { font-size: 15px; }
+.cracker:active {
+  transform: scale(0.96);
+}
+
+.cracker span {
+  font-size: 44px;
+  line-height: 1.2;
+}
+
+.cracker strong {
+  font-size: 15px;
+  color: #fff3d7;
+}
 
 .cracker small {
   font-size: 11px;
   color: #c7b9d8;
 }
 
+/* Used firecracker */
+
 .cracker.used {
   border-color: #ffcd79;
-  background: linear-gradient(155deg,#73513e99,#32203e99);
+  background: linear-gradient(
+    155deg,
+    #73513e99,
+    #32203e99
+  );
 }
 
 .cracker.used::after {
@@ -286,20 +484,35 @@ header p {
   color: #ffda95;
 }
 
-/* Final surprise */
+/* =========================================
+   FINAL SURPRISE
+========================================= */
 
 #finalScene {
+  width: 100%;
   max-width: 540px;
   margin: auto;
 }
 
-.final-art {
-  font-size: 60px;
-  filter: drop-shadow(0 0 22px #ffa44c);
+.final-content {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
 }
 
-h2 {
+.final-icon {
+  font-size: 60px;
+  filter: drop-shadow(
+    0 0 22px #ffa44c
+  );
+}
+
+#finalScene h2 {
   font-size: clamp(40px, 8vw, 68px);
+  line-height: 1.2;
   margin: 0;
 }
 
@@ -307,24 +520,23 @@ h2 {
   font-size: 17px;
   color: #ead5ef;
   line-height: 1.8;
+  margin: 0;
 }
 
-footer {
-  color: #8f80a6;
-  font-size: 11px;
-  padding-top: 20px;
-}
-
-/* Animations */
+/* =========================================
+   ANIMATIONS
+========================================= */
 
 @keyframes flicker {
   from {
     filter: brightness(1);
     transform: rotate(43deg) scale(1);
   }
+
   to {
     filter: brightness(1.18);
-    transform: rotate(48deg) scale(.93, 1.07);
+    transform: rotate(48deg)
+      scale(0.93, 1.07);
   }
 }
 
@@ -333,33 +545,340 @@ footer {
     opacity: 0;
     transform: translateY(15px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-/* Mobile responsive */
+/* =========================================
+   TABLET VIEW
+========================================= */
+
+@media (max-width: 850px) {
+
+  .app {
+    padding: 32px 18px 24px;
+  }
+
+  .cracker-grid {
+    grid-template-columns: repeat(
+      3,
+      minmax(0, 1fr)
+    );
+  }
+
+  .cracker {
+    min-height: 145px;
+  }
+
+  .diya-grid {
+    max-width: 580px;
+  }
+}
+
+/* =========================================
+   MOBILE VIEW
+========================================= */
 
 @media (max-width: 650px) {
-  .app { padding: 28px 12px 20px; }
-  .diya-grid { gap: 0; }
+
+  .app {
+    width: 100%;
+    max-width: 100%;
+
+    min-height: 100dvh;
+
+    padding:
+      max(24px, env(safe-area-inset-top))
+      16px
+      max(24px, env(safe-area-inset-bottom));
+
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Mobile header */
+
+  header {
+    padding-top: 10px;
+    flex-shrink: 0;
+  }
+
+  .eyebrow {
+    font-size: 10px;
+    letter-spacing: 2px;
+  }
+
+  h1 {
+    font-size: clamp(29px, 8vw, 39px);
+    line-height: 1.2;
+    margin: 14px 0 12px;
+  }
+
+  header p {
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+
+  /* Scene layout */
+
+  .scene {
+    width: 100%;
+    min-height: 0;
+    flex: 1;
+
+    gap: 20px;
+    padding: 25px 0;
+
+    justify-content: center;
+  }
+
+  /* Diya counter */
+
+  .counter {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  /* Three-column diya grid */
+
+  .diya-grid {
+    width: 100%;
+    max-width: 370px;
+
+    display: grid;
+    grid-template-columns: repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+    justify-items: center;
+    align-items: center;
+
+    gap: 12px 4px;
+    padding: 12px 0;
+  }
+
   .diya {
-    width: 90px;
-    height: 105px;
-    transform: scale(.83);
+    width: 100%;
+    max-width: 110px;
+    height: 115px;
+    flex-shrink: initial;
+    transform: none;
   }
-  .diya:hover { transform: scale(.83); }
+
+  .diya:hover {
+    transform: none;
+  }
+
+  .diya:active {
+    transform: scale(0.94);
+  }
+
+  /* Center the diya bowl */
+
+  .diya .bowl {
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    width: 78px;
+    height: 36px;
+  }
+
+  .diya .bowl::after {
+    left: 33px;
+    top: 9px;
+  }
+
+  .diya .wick {
+    left: calc(50% - 3px);
+    bottom: 56px;
+  }
+
+  .diya .flame {
+    left: calc(50% - 13px);
+    bottom: 61px;
+  }
+
+  /* Firecracker heading */
+
+  #crackerScene h2 {
+    font-size: 33px;
+    line-height: 1.2;
+    margin: 0;
+  }
+
+  #crackerScene > p {
+    font-size: 13px;
+    margin: 0;
+  }
+
+  /* Two-column firecracker grid */
+
   .cracker-grid {
-    grid-template-columns: repeat(3,minmax(0,1fr));
-    gap: 9px;
+    display: grid;
+
+    grid-template-columns: repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+    width: 100%;
+    max-width: 420px;
+    gap: 12px;
   }
+
   .cracker {
-    min-height: 130px;
-    padding: 10px 4px;
+    width: 100%;
+    min-height: 140px;
+
+    padding: 16px 10px;
+    border-radius: 20px;
+    gap: 8px;
+
+    background: linear-gradient(
+      145deg,
+      #5b387a,
+      #2b183f
+    );
+
+    box-shadow: 0 8px 25px #00000033;
   }
-  .cracker span { font-size: 32px; }
-  .cracker b { font-size: 12px; }
-  .cracker small { font-size: 10px; }
-  .scene { gap: 15px; }
+
+  .cracker:last-child {
+    grid-column: 1 / -1;
+    min-height: 115px;
+  }
+
+  .cracker span {
+    font-size: 39px;
+    line-height: 1.2;
+  }
+
+  .cracker strong {
+    font-size: 15px;
+    color: #fff3d7;
+  }
+
+  .cracker small {
+    font-size: 11px;
+    color: #d0bbdf;
+  }
+
+  /* Mobile buttons */
+
+  .primary {
+    width: 100%;
+    max-width: 350px;
+
+    min-height: 52px;
+    padding: 15px 20px;
+
+    font-size: 15px;
+    border-radius: 16px;
+  }
+
+  .hint {
+    font-size: 12px;
+    line-height: 1.6;
+    padding: 0 10px;
+  }
+
+  /* Final scene */
+
+  #finalScene {
+    width: 100%;
+    max-width: 100%;
+    padding: 25px 10px;
+  }
+
+  .final-content {
+    gap: 20px;
+  }
+
+  .final-icon {
+    font-size: 58px;
+  }
+
+  #finalScene h2 {
+    font-size: clamp(34px, 9vw, 48px);
+    line-height: 1.2;
+  }
+
+  #finalScene p {
+    font-size: 15px;
+    line-height: 1.8;
+    max-width: 330px;
+  }
+}
+
+/* =========================================
+   SMALL PHONES
+========================================= */
+
+@media (max-width: 360px) {
+
+  .app {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  h1 {
+    font-size: 27px;
+  }
+
+  .diya-grid {
+    gap: 4px;
+  }
+
+  .diya {
+    height: 100px;
+  }
+
+  .cracker {
+    min-height: 120px;
+    padding: 12px 6px;
+  }
+
+  .cracker span {
+    font-size: 32px;
+  }
+
+  .scene {
+    gap: 14px;
+    padding: 15px 0;
+  }
+}
+
+/* =========================================
+   LANDSCAPE PHONES
+========================================= */
+
+@media (max-height: 600px) {
+
+  .app {
+    min-height: 100dvh;
+  }
+
+  .scene {
+    justify-content: flex-start;
+  }
+}
+
+/* =========================================
+   ACCESSIBILITY
+========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
