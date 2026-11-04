@@ -1,12 +1,9 @@
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
-
 :root {
   color-scheme: dark;
-  --gold: #ffd68b;
-  --muted: #d6c5e4;
-  --surface: #39204f;
-  --dark: #130a23;
+  --gold: #ffd78c;
+  --text: #fff5e8;
+  --muted: #e6d6ef;
 }
 
 * {
@@ -20,48 +17,40 @@ html {
 }
 
 body {
-  width: 100%;
+  margin: 0;
   min-height: 100vh;
   min-height: 100dvh;
-  margin: 0;
   overflow-x: hidden;
-  font-family: 'DM Sans', Arial, sans-serif;
-  color: #fff;
+  font-family: Georgia, "Times New Roman", serif;
+  color: var(--text);
   background:
     radial-gradient(
       ellipse at 50% 48%,
-      #34204c 0%,
-      #211334 52%,
-      #120a20 100%
+      #38214f 0%,
+      #211333 55%,
+      #11091f 100%
     );
 }
 
-/* Lightweight decorative stars */
-
 body::before {
-  content: '';
+  content: "";
   position: fixed;
   inset: 0;
-  z-index: 0;
   pointer-events: none;
-  opacity: .32;
+  opacity: .3;
   background-image:
-    radial-gradient(#f6d9ad 0.7px, transparent 1px);
-  background-size: 44px 44px;
+    radial-gradient(#f9dda8 0.8px, transparent 1px);
+  background-size: 42px 42px;
 }
-
-/* Fireworks canvas */
 
 #effects {
   position: fixed;
   inset: 0;
-  z-index: 10;
   width: 100%;
   height: 100%;
+  z-index: 10;
   pointer-events: none;
 }
-
-/* Main layout */
 
 .app {
   position: relative;
@@ -73,63 +62,55 @@ body::before {
   margin: 0 auto;
   padding:
     max(20px, env(safe-area-inset-top))
-    16px
-    max(20px, env(safe-area-inset-bottom));
+    20px
+    max(24px, env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   justify-content: center;
   text-align: center;
 }
 
-/* Header */
-
 header {
-  flex: 0 0 auto;
-  margin-bottom: 20px;
+  margin-bottom: 26px;
 }
 
 .eyebrow {
   display: block;
-  color: #d8b4f5;
-  font-size: 10px;
+  color: #e6c3ff;
+  font-family: Arial, sans-serif;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 2px;
 }
 
-h1,
-h2 {
-  font-family: 'Playfair Display', Georgia, serif;
+h1, h2 {
   color: var(--gold);
-  text-shadow: 0 0 18px #ffb45c33;
+  font-weight: 700;
+  line-height: 1.18;
+  text-shadow: 0 0 16px #ffb65c33;
 }
 
 h1 {
-  font-size: clamp(28px, 7.5vw, 38px);
-  line-height: 1.2;
-  margin: 12px 0 10px;
+  font-size: clamp(32px, 8.5vw, 43px);
+  margin: 14px 0;
 }
 
 header p {
-  max-width: 340px;
-  margin: 0 auto;
+  font-family: Arial, sans-serif;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.5;
+  margin: 0;
 }
-
-/* Scenes */
 
 .scene {
   width: 100%;
-  flex: 0 0 auto;
   min-height: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 17px;
-  animation: sceneIn .35s ease-out both;
+  gap: 22px;
 }
 
 .scene:not(.active),
@@ -137,36 +118,31 @@ header p {
   display: none !important;
 }
 
-/* Fireworks and final screens are standalone */
-
 .app:has(#crackerScene.active) header,
 .app:has(#finalScene.active) header {
   display: none;
 }
 
-/* Diya scene */
+/* DIYAS */
 
 .counter {
-  padding: 10px 22px;
-  border: 1px solid #ffd68b55;
+  padding: 12px 25px;
+  border: 1px solid #ffd68b66;
   border-radius: 30px;
-  background: #ffffff0d;
-  color: #ffe0a6;
-  font-size: 14px;
-  font-weight: 600;
+  background: #ffffff12;
+  color: #ffe1a6;
+  font-family: Arial, sans-serif;
+  font-size: 17px;
+  font-weight: 700;
 }
 
-/* Seven diyas: 3 + 3 + 1 */
-
 .diya-grid {
-  width: 100%;
-  max-width: 370px;
-  padding: 4px 0;
   display: grid;
+  width: 100%;
+  max-width: 390px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   justify-items: center;
-  align-items: center;
-  gap: 9px 5px;
+  gap: 12px 5px;
 }
 
 .diya:nth-child(7) {
@@ -176,297 +152,240 @@ header p {
 .diya {
   position: relative;
   width: 100%;
-  max-width: 110px;
-  height: 108px;
+  max-width: 115px;
+  height: 112px;
+  border: none;
   padding: 0;
-  border: 0;
   background: transparent;
   cursor: pointer;
   touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
 }
-
-.diya:active {
-  transform: scale(.96);
-}
-
-/* Clay diya bowl */
 
 .diya .bowl {
   position: absolute;
   left: 50%;
   bottom: 13px;
-  width: 82px;
-  height: 38px;
+  width: 85px;
+  height: 40px;
   transform: translateX(-50%);
   border-radius: 8px 8px 50px 50px;
-  border-top: 5px solid #c9855b;
-  background: linear-gradient(
-    #a9583c,
-    #632d3b
-  );
-  box-shadow: 0 5px 10px #0005;
+  border-top: 5px solid #d08a5a;
+  background: linear-gradient(#ae5d3d, #682d3a);
+  box-shadow: 0 6px 12px #0005;
 }
 
 .diya .bowl::after {
-  content: '✦';
+  content: "✦";
   position: absolute;
   left: 50%;
-  top: 8px;
+  top: 9px;
   transform: translateX(-50%);
-  color: #ffd18a;
-  font-size: 15px;
+  color: #ffd68b;
+  font-size: 17px;
 }
 
 .diya .wick {
   position: absolute;
   left: calc(50% - 3px);
-  bottom: 57px;
+  bottom: 58px;
   width: 6px;
   height: 16px;
-  background: #34222b;
   border-radius: 4px;
+  background: #34212b;
 }
 
 .diya .flame {
   position: absolute;
-  left: calc(50% - 12px);
-  bottom: 62px;
-  width: 24px;
-  height: 40px;
+  left: calc(50% - 13px);
+  bottom: 64px;
+  width: 26px;
+  height: 43px;
   border-radius: 70% 10% 65% 50%;
   transform: rotate(45deg) scale(0);
-  transform-origin: center bottom;
   background: linear-gradient(
     135deg,
-    #fff6b0,
-    #ffca4d 50%,
-    #ff6826
+    #fff9ba,
+    #ffca48 50%,
+    #ff6425
   );
-  box-shadow: 0 0 16px #ff9d3677;
+  box-shadow: 0 0 14px #ffa03688;
   transition: transform .25s ease;
 }
 
 .diya.lit .flame {
   transform: rotate(45deg) scale(1);
-  animation: flicker 1.6s ease-in-out infinite alternate;
 }
 
 .diya.lit .bowl {
-  background: linear-gradient(
-    #d98641,
-    #8d3540
-  );
-  box-shadow: 0 0 15px #ffad4633;
+  background: linear-gradient(#e48a41, #91383c);
 }
-
-/* Instructions */
 
 .hint {
   margin: 0;
   color: var(--muted);
-  font-size: 13px;
+  font-family: Arial, sans-serif;
+  font-size: 16px;
   line-height: 1.5;
 }
 
-/* Buttons */
+/* BUTTONS */
 
 .primary {
   width: 100%;
-  max-width: 350px;
-  min-height: 52px;
-  padding: 14px 18px;
+  max-width: 370px;
+  min-height: 58px;
   border: 0;
   border-radius: 16px;
-  background: linear-gradient(
-    100deg,
-    #ffcf78,
-    #ff936b
-  );
-  color: #35162b;
-  font-family: inherit;
-  font-size: 15px;
+  padding: 15px 20px;
+  background: linear-gradient(100deg, #ffce76, #ff966e);
+  color: #35172b;
+  font-family: Arial, sans-serif;
+  font-size: 17px;
   font-weight: 700;
   cursor: pointer;
   touch-action: manipulation;
-  box-shadow: 0 5px 16px #ffab5b30;
-}
-
-.primary:active {
-  transform: scale(.97);
 }
 
 button:focus-visible {
   outline: 3px solid white;
-  outline-offset: 4px;
+  outline-offset: 3px;
 }
 
-/* Firecracker scene */
+/* FIRECRACKERS */
 
 #crackerScene.active {
-  width: 100%;
-  max-width: 440px;
-  gap: 18px;
+  gap: 20px;
 }
 
 #crackerScene h2 {
+  font-size: clamp(38px, 10vw, 49px);
   margin: 0;
-  font-size: clamp(34px, 9vw, 43px);
-  line-height: 1.2;
 }
 
 #crackerScene > p {
-  margin: 0;
   color: var(--muted);
-  font-size: 14px;
+  font-family: Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+  margin: 0;
 }
-
-/* Firecracker cards */
 
 .cracker-grid {
   display: grid;
   width: 100%;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 13px;
 }
 
 .cracker {
   min-width: 0;
-  min-height: 145px;
+  min-height: 150px;
   padding: 15px 8px;
-  border: 1px solid #b58bd066;
-  border-radius: 19px;
-  background: linear-gradient(
-    145deg,
-    #52336c,
-    #29173c
-  );
+  border: 1px solid #b58bd077;
+  border-radius: 20px;
+  background: linear-gradient(#583675, #2a183e);
   color: white;
-  font-family: inherit;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 9px;
   cursor: pointer;
   touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-  box-shadow: 0 4px 12px #0003;
-}
-
-.cracker:active {
-  transform: scale(.97);
 }
 
 .cracker:last-child {
   grid-column: 1 / -1;
-  min-height: 110px;
+  min-height: 115px;
 }
 
 .cracker span {
-  font-size: 44px;
+  font-size: 49px;
   line-height: 1.2;
 }
 
 .cracker strong {
-  font-size: 16px;
+  font-family: Arial, sans-serif;
+  font-size: 19px;
   color: #fff0d4;
 }
 
 .cracker small {
-  font-size: 12px;
-  color: #d6c2e6;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  color: var(--muted);
 }
 
 .cracker.used {
-  border-color: #ffce80;
-  background: linear-gradient(
-    #62445f,
-    #34213f
-  );
+  border-color: var(--gold);
 }
 
 .cracker.used::after {
-  content: '✓ Tried';
-  color: #ffdc9e;
-  font-size: 11px;
+  content: "✓ Tried";
+  color: var(--gold);
+  font-family: Arial, sans-serif;
+  font-size: 13px;
 }
 
-/* Final greeting */
+/* FINAL CELEBRATION */
 
 #finalScene.active {
-  max-width: 440px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .final-content {
-  width: 100%;
   display: flex;
+  width: 100%;
   flex-direction: column;
   align-items: center;
-  gap: 23px;
+  gap: 24px;
 }
 
 .final-icon {
-  font-size: 65px;
+  font-size: 75px;
+  line-height: 1.2;
 }
 
 #finalScene h2 {
+  font-size: clamp(45px, 12vw, 62px);
   margin: 0;
-  font-size: clamp(36px, 10vw, 54px);
 }
 
 #finalScene p {
-  max-width: 350px;
+  width: 100%;
+  max-width: 370px;
   margin: 0;
-  color: #ead5ef;
-  font-size: 16px;
-  line-height: 1.8;
+  color: #fff1e6;
+  font-family: Arial, sans-serif;
+  font-size: 19px;
+  line-height: 1.7;
 }
 
-/* Animations */
-
-@keyframes sceneIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+#replayBtn {
+  width: 100%;
+  min-height: 60px;
+  font-size: 18px;
 }
 
-@keyframes flicker {
-  from {
-    transform: rotate(43deg) scale(1);
-  }
-  to {
-    transform: rotate(47deg) scale(.95, 1.05);
-  }
-}
+/* SHORT PHONES */
 
-/* Very small phones */
-
-@media (max-width: 360px) {
+@media (max-height: 740px) {
   .app {
-    padding: 14px 12px;
+    padding-top: 14px;
+    padding-bottom: 14px;
   }
 
   header {
-    margin-bottom: 12px;
+    margin-bottom: 14px;
   }
 
-  .scene {
-    gap: 12px;
+  .scene,
+  .final-content {
+    gap: 14px;
   }
 
   .diya {
     height: 95px;
-  }
-
-  .diya .bowl {
-    width: 75px;
   }
 
   .cracker {
@@ -476,72 +395,42 @@ button:focus-visible {
   .cracker:last-child {
     min-height: 95px;
   }
-
-  .cracker span {
-    font-size: 38px;
-  }
 }
 
-/* Short screens */
+/* NARROW PHONES */
 
-@media (max-height: 720px) {
+@media (max-width: 360px) {
   .app {
-    padding-top: 12px;
-    padding-bottom: 12px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
-  header {
-    margin-bottom: 12px;
+  .diya .bowl {
+    width: 74px;
   }
 
-  .scene {
-    gap: 12px;
+  .cracker strong {
+    font-size: 17px;
   }
 
-  .diya {
-    height: 92px;
-  }
-
-  .cracker {
-    min-height: 118px;
-  }
-
-  .cracker:last-child {
-    min-height: 90px;
+  #finalScene p {
+    font-size: 17px;
   }
 }
 
-/* Tablets and desktops */
+/* ALLOW SCROLLING ON VERY SHORT SCREENS */
 
-@media (min-width: 768px) {
+@media (max-height: 560px) {
   .app {
-    max-width: 850px;
-    padding: 30px;
-  }
-
-  .cracker-grid {
-    max-width: 650px;
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .cracker:last-child {
-    grid-column: auto;
-    min-height: 145px;
-  }
-
-  .cracker:hover {
-    border-color: #ffd68b;
-    transform: translateY(-3px);
+    justify-content: flex-start;
   }
 }
-
-/* Accessibility */
 
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    animation-duration: .01ms !important;
-    transition-duration: .01ms !important;
+    animation: none !important;
+    transition: none !important;
   }
 }
