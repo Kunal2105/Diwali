@@ -1,282 +1,366 @@
 
 'use strict';
 
-// Diwali Surprise: animation and interaction controller.
-(function () {
-  function initialize() {
-    const get = (id) => document.getElementById(id);
+document.addEventListener('DOMContentLoaded', () => {
+  const $ = id => document.getElementById(id);
+  const canvas = $('effects');
+  const ctx = canvas.getContext('2d');
 
-    const required = [
-      'recipient',
-      'cluster',
-      'centerDiya',
-      'finalDiyas',
-      'petals',
-      'beads',
-      'sparkLayer',
-      'thought',
-      'start',
-      'replay',
-      'share'
-    ];
+  const colors = [
+    '#ffd66b', '#ff7d6c', '#fa5dd8',
+    '#68d8ff', '#a5ff9a', '#ffffff'
+  ];
 
-    const missing = required.filter((id) => !get(id));
+  let particles = [];
+  let animations = [];
+  let lit = 0;
+  let tried = new Set();
+  let last = 0;
 
-    if (missing.length) {
-      console.error(
-        'Diwali Surprise: missing HTML elements:',
-        missing.join(', ')
+  function resize() {
+    const d = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = innerWidth * d;
+    canvas.height = innerHeight * d;
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+
+  function particle(
+    x, y, vx, vy, color,
+    life = 75, size = 2, gravity = .055
+  ) {
+    particles.push({
+      x, y, vx, vy, color,
+      life, max: life, size, gravity
+    });
+  }
+
+  function burst(x, y, n = 70, power = 5) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.PI * 2 * i / n + rand(-.15, .15);
+      const v = rand(power * .4, power);
+
+      particle(
+        x, y,
+        Math.cos(a) * v,
+        Math.sin(a) * v,
+        colors[i % colors.length],
+        rand(45, 90),
+        rand(1, 3)
       );
-      return;
+    }
+  }
+
+  function gold(x, y, n = 22, power = 4) {
+    for (let i = 0; i < n; i++) {
+      const a = rand(0, Math.PI * 2);
+      const v = rand(.5, power);
+
+      particle(
+        x, y,
+        Math.cos(a) * v,
+        Math.sin(a) * v,
+        '#ffcc67',
+        rand(20, 55),
+        rand(1, 3)
+      );
+    }
+  }
+
+  function tick(t) {
+    const dt = Math.min((t - last) / 16.67 || 1, 2);
+    last = t;
+
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    ctx.globalCompositeOperation = 'lighter';
+
+    for (const p of particles) {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += p.gravity * dt;
+      p.vx *= .993;
+      p.life -= dt;
+
+      ctx.globalAlpha = Math.max(0, p.life / p.max);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
     }
 
-    // Personalized greeting from URL
-    const params = new URLSearchParams(window.location.search);
-    const recipientName = params.get('name');
+    particles = particles.filter(p => p.life > 0);
+    ctx.globalAlpha = 1;
 
-    if (recipientName) {
-      get('recipient').textContent =
-        `Happy Diwali, ${recipientName.slice(0, 40)} ❤️`;
+    for (const animation of animations.slice()) {
+      animation(dt, t);
     }
 
-    // Create animated diya
-    function makeDiya(x, y, big = false) {
-      const element = document.createElement('div');
+    ctx.globalCompositeOperation = 'source-over';
+    requestAnimationFrame(tick);
+  }
 
-      element.className = `diya${big ? ' big' : ''}`;
-      element.style.left = `${x}%`;
-      element.style.top = `${y}%`;
+  requestAnimationFrame(tick);
 
-      element.innerHTML = `
+  const grid = $('diyaGrid');
+
+  function showScene(id) {
+    document.querySelectorAll('.scene').forEach(scene => {
+      scene.classList.toggle('hidden', scene.id !== id);
+      scene.classList.toggle('active', scene.id === id);
+    });
+  }
+
+  function reset() {
+    lit = 0;
+    tried.clear();
+    particles = [];
+    animations = [];
+    grid.innerHTML = '';
+
+    $('diyaCount').textContent = '0';
+    $('crackerCount').textContent = '0';
+    $('continueBtn').classList.add('hidden');
+    $('finalBtn').classList.add('hidden');
+    $('subtitle').textContent =
+      'Tap every diya to spread the light!';
+
+    document.querySelectorAll('.cracker').forEach(btn => {
+      btn.classList.remove('used');
+    });
+
+    showScene('diyaScene');
+
+    for (let i = 0; i < 7; i++) {
+      const diya = document.createElement('button');
+      diya.type = 'button';
+      diya.className = 'diya';
+      diya.setAttribute('aria-label', `Light diya ${i + 1}`);
+
+      diya.innerHTML = `
         <span class="flame"></span>
+        <span class="wick"></span>
         <span class="bowl"></span>
       `;
 
-      return element;
-    }
+      diya.addEventListener('click', () => {
+        if (diya.classList.contains('lit')) return;
 
-    // Opening diya arrangement
-    const diyaPositions = [
-      [50, 73, true],
-      [25, 87],
-      [76, 87],
-      [13, 58],
-      [35, 50],
-      [65, 50],
-      [87, 58],
-      [21, 31],
-      [45, 24],
-      [70, 26],
-      [86, 37]
-    ];
+        diya.classList.add('lit');
+        diya.setAttribute('aria-label', `Diya ${i + 1} lit`);
+        lit++;
 
-    diyaPositions.forEach(([x, y, big]) => {
-      get('cluster').appendChild(makeDiya(x, y, !!big));
-    });
-
-    // Center diya
-    get('centerDiya').appendChild(makeDiya(50, 50, true));
-
-    // Final scene diyas
-    [
-      [25, 55],
-      [50, 50, true],
-      [75, 55]
-    ].forEach(([x, y, big]) => {
-      get('finalDiyas').appendChild(makeDiya(x, y, !!big));
-    });
-
-    // Generate rangoli decorations
-    const petals = get('petals');
-    const beads = get('beads');
-
-    for (let i = 0; i < 24; i++) {
-      const angle = (i * 15 * Math.PI) / 180;
-
-      petals.insertAdjacentHTML(
-        'beforeend',
-        `<ellipse
-          cx="0"
-          cy="-73"
-          rx="10"
-          ry="19"
-          transform="rotate(${i * 15})"
-        />`
-      );
-
-      beads.insertAdjacentHTML(
-        'beforeend',
-        `<circle
-          cx="${Math.sin(angle) * 97}"
-          cy="${-Math.cos(angle) * 97}"
-          r="5"
-          fill="${i % 2 ? '#1b9b4c' : '#f43d36'}"
-        />`
-      );
-    }
-
-    // Scene timer management
-    let timers = [];
-
-    function later(callback, delay) {
-      timers.push(window.setTimeout(callback, delay));
-    }
-
-    // Switch between scenes
-    function showScene(id) {
-      document.querySelectorAll('.scene').forEach((element) => {
-        element.classList.toggle(
-          'active',
-          element.id === id
-        );
-      });
-    }
-
-    // Firework particle animation
-    function fireworks(x, y, count = 32) {
-      for (let i = 0; i < count; i++) {
-        const particle = document.createElement('span');
-
-        const angle = Math.random() * Math.PI * 2;
-        const distance = 35 + Math.random() * 180;
-
-        particle.className = 'spark';
-
-        particle.style.left = `${x}%`;
-        particle.style.top = `${y}%`;
-
-        particle.style.setProperty(
-          '--dx',
-          `${Math.cos(angle) * distance}px`
+        const r = diya.getBoundingClientRect();
+        gold(
+          r.left + r.width / 2,
+          r.top + r.height * .35,
+          36,
+          3
         );
 
-        particle.style.setProperty(
-          '--dy',
-          `${Math.sin(angle) * distance}px`
-        );
+        $('diyaCount').textContent = lit;
 
-        get('sparkLayer').appendChild(particle);
-
-        window.setTimeout(() => {
-          particle.remove();
-        }, 1750);
-      }
-    }
-
-    // Main animation sequence
-    function play() {
-      timers.forEach((timer) => {
-        window.clearTimeout(timer);
+        if (lit === 7) {
+          $('subtitle').textContent =
+            'All seven diyas are glowing! ✨';
+          $('continueBtn').classList.remove('hidden');
+        }
       });
 
-      timers = [];
-
-      get('thought').textContent =
-        'That special moment. 🥺';
-
-      // Scene 1: Opening
-      showScene('intro');
-      fireworks(50, 43, 45);
-
-      // Scene 2: Message
-      later(() => {
-        showScene('message');
-      }, 4700);
-
-      later(() => {
-        get('thought').textContent =
-          'Your smile, your laughter, your light. ❤️';
-
-        fireworks(50, 48, 26);
-      }, 7200);
-
-      // Scene 3: Celebration
-      later(() => {
-        showScene('celebrate');
-      }, 10800);
-
-      later(() => {
-        fireworks(25, 30, 45);
-        fireworks(75, 25, 45);
-      }, 12500);
-
-      // Scene 4: Final greeting
-      later(() => {
-        showScene('final');
-        fireworks(50, 25, 70);
-      }, 16200);
-
-      later(() => {
-        fireworks(20, 35, 35);
-      }, 18500);
-
-      later(() => {
-        fireworks(80, 35, 35);
-      }, 20000);
+      grid.appendChild(diya);
     }
+  }
 
-    // Start button
-    get('start').addEventListener('click', play);
+  $('continueBtn').addEventListener('click', () => {
+    showScene('crackerScene');
+    $('subtitle').textContent =
+      'Tap the firecrackers and enjoy the magic!';
+  });
 
-    // Replay button
-    get('replay').addEventListener('click', play);
+  // Each firecracker has its own animation.
 
-    // Share greeting
-    get('share').addEventListener('click', async () => {
-      const url = new URL(window.location.href);
+  function launch(type, rect) {
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
 
-      url.searchParams.set(
-        'name',
-        recipientName || 'Someone Special'
-      );
+    // ROCKET: rises and explodes in the sky.
+    if (type === 'rocket') {
+      let px = x;
+      let py = innerHeight + 20;
 
-      try {
-        if (navigator.share) {
-          await navigator.share({
-            title: 'A Diwali surprise for you',
-            url: url.href
-          });
-        } else if (
-          navigator.clipboard &&
-          window.isSecureContext
-        ) {
-          await navigator.clipboard.writeText(url.href);
+      const fn = dt => {
+        py -= 9 * dt;
 
-          get('share').textContent = 'Link copied! ✓';
-        } else {
-          window.prompt('Copy this link:', url.href);
-        }
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error('Sharing failed:', error);
-        }
-      }
-    });
-
-    // Interactive diyas
-    document.querySelectorAll('#cluster .diya')
-      .forEach((element) => {
-        element.addEventListener('click', () => {
-          fireworks(
-            parseFloat(element.style.left),
-            43,
-            18
+        for (let i = 0; i < 4; i++) {
+          particle(
+            px + rand(-4, 4),
+            py + 10,
+            rand(-1, 1),
+            rand(1, 3),
+            '#ffba59',
+            25, 2
           );
-        });
-      });
+        }
 
-    // Automatically start animation
-    play();
+        if (py < innerHeight * .25) {
+          animations = animations.filter(a => a !== fn);
+          burst(px, py, 130, 6);
+
+          setTimeout(() => {
+            burst(px + 60, py + 35, 70, 4);
+          }, 230);
+        }
+      };
+
+      animations.push(fn);
+    }
+
+    // CHAKRI: rotating circular sparks.
+    if (type === 'chakri') {
+      let frame = 0;
+
+      const fn = dt => {
+        frame += dt;
+
+        for (let i = 0; i < 5; i++) {
+          const a = frame * .24 + i * Math.PI * 2 / 5;
+
+          particle(
+            x + Math.cos(a) * 25,
+            y + Math.sin(a) * 25,
+            Math.cos(a) * rand(3, 7),
+            Math.sin(a) * rand(3, 7),
+            colors[i],
+            rand(25, 50),
+            2
+          );
+        }
+
+        if (frame > 105) {
+          animations = animations.filter(a => a !== fn);
+        }
+      };
+
+      animations.push(fn);
+    }
+
+    // PHULJHADI: continuous golden shower.
+    if (type === 'sparkler') {
+      let frame = 0;
+
+      const fn = dt => {
+        frame += dt;
+
+        for (let i = 0; i < 9; i++) {
+          const a = rand(0, Math.PI * 2);
+          const v = rand(.5, 5);
+
+          particle(
+            x, y,
+            Math.cos(a) * v,
+            Math.sin(a) * v,
+            '#ffe9a6',
+            rand(15, 55),
+            rand(1, 2.5),
+            .09
+          );
+        }
+
+        if (frame > 145) {
+          animations = animations.filter(a => a !== fn);
+        }
+      };
+
+      animations.push(fn);
+    }
+
+    // ANAAR: colorful upward fountain.
+    if (type === 'anaar') {
+      let frame = 0;
+
+      const fn = dt => {
+        frame += dt;
+
+        for (let i = 0; i < 10; i++) {
+          particle(
+            x + rand(-9, 9),
+            y,
+            rand(-4.8, 4.8),
+            rand(-11, -5),
+            colors[Math.floor(rand(0, colors.length))],
+            rand(45, 85),
+            rand(1.3, 3),
+            .18
+          );
+        }
+
+        if (frame > 135) {
+          animations = animations.filter(a => a !== fn);
+        }
+      };
+
+      animations.push(fn);
+    }
+
+    // BOMB: large explosion with secondary bursts.
+    if (type === 'bomb') {
+      burst(x, y, 180, 9);
+
+      setTimeout(() => {
+        burst(x - 100, y - 85, 90, 5);
+        burst(x + 110, y - 65, 90, 5);
+      }, 350);
+
+      setTimeout(() => {
+        gold(x, y - 140, 130, 7);
+      }, 700);
+    }
   }
 
-  // Wait until HTML is loaded
-  if (document.readyState === 'loading') {
-    document.addEventListener(
-      'DOMContentLoaded',
-      initialize,
-      { once: true }
-    );
-  } else {
-    initialize();
-  }
-})();
+  document.querySelectorAll('.cracker').forEach(btn => {
+    btn.addEventListener('click', () => {
+      launch(btn.dataset.type, btn.getBoundingClientRect());
+
+      btn.classList.add('used');
+      tried.add(btn.dataset.type);
+      $('crackerCount').textContent = tried.size;
+
+      if (tried.size === 5) {
+        $('finalBtn').classList.remove('hidden');
+      }
+    });
+  });
+
+  $('finalBtn').addEventListener('click', () => {
+    showScene('finalScene');
+
+    $('subtitle').textContent =
+      'Every celebration is brighter when shared.';
+
+    const name = new URLSearchParams(
+      window.location.search
+    ).get('name');
+
+    $('greeting').textContent = name
+      ? `Happy Diwali, ${name.slice(0, 35)}! ❤️`
+      : 'Happy Diwali! ❤️';
+
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        burst(
+          rand(80, Math.max(81, innerWidth - 80)),
+          rand(80, Math.max(81, innerHeight * .55)),
+          90,
+          rand(3, 7)
+        );
+      }, i * 350);
+    }
+  });
+
+  $('replayBtn').addEventListener('click', reset);
+
+  reset();
+});
