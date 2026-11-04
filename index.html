@@ -4,24 +4,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport"
-        content="width=device-width, initial-scale=1">
-  <title>Interactive Diwali Celebration</title>
+        content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#160c28">
+  <title>Light Up My Diwali 🪔</title>
   <link rel="stylesheet" href="style.css">
-  <script src="script.js" defer></script>
 </head>
+
 <body>
-  <canvas id="effects"></canvas>
+  <canvas id="effects" aria-hidden="true"></canvas>
 
   <main class="app">
-    <header>
-      <span class="eyebrow">A LITTLE FESTIVE SURPRISE</span>
+
+    <header id="introHeader">
+      <span class="eyebrow">
+        A LITTLE FESTIVE SURPRISE
+      </span>
       <h1>Light Up My Diwali 🪔</h1>
       <p id="subtitle">
         Tap every diya to spread the light!
       </p>
     </header>
 
-    <section id="diyaScene" class="scene active">
+    <!-- SCREEN 1: DIYAS -->
+    <section id="diyaScene"
+             class="scene active"
+             aria-label="Light the diyas">
+
       <div class="counter">
         Diyas lit: <span id="diyaCount">0</span>/7
       </div>
@@ -33,45 +41,65 @@
       </p>
 
       <button id="continueBtn"
-              class="primary hidden">
+              class="primary hidden"
+              type="button">
         Continue to Fireworks 🎆
       </button>
     </section>
 
-    <section id="crackerScene" class="scene">
-      <h2>Let's Celebrate! 🎇</h2>
-      <p>Tap each firecracker to launch it.</p>
+    <!-- SCREEN 2: FIRECRACKERS -->
+    <section id="crackerScene"
+             class="scene"
+             aria-label="Firecracker celebration">
+
+      <h2>Let's Celebrate! 🎆</h2>
+
+      <p class="scene-subtitle">
+        Tap each firecracker to launch it.
+      </p>
 
       <div class="cracker-grid">
-        <button class="cracker" data-type="rocket">
+
+        <button type="button"
+                class="cracker"
+                data-type="rocket">
           <span>🚀</span>
           <strong>Rocket</strong>
           <small>Sky explosion</small>
         </button>
 
-        <button class="cracker" data-type="chakri">
+        <button type="button"
+                class="cracker"
+                data-type="chakri">
           <span>🌀</span>
           <strong>Chakri</strong>
           <small>Spinning sparks</small>
         </button>
 
-        <button class="cracker" data-type="sparkler">
+        <button type="button"
+                class="cracker"
+                data-type="sparkler">
           <span>✨</span>
           <strong>Phuljhadi</strong>
           <small>Golden sparks</small>
         </button>
 
-        <button class="cracker" data-type="anaar">
+        <button type="button"
+                class="cracker"
+                data-type="anaar">
           <span>🎇</span>
           <strong>Anaar</strong>
           <small>Color fountain</small>
         </button>
 
-        <button class="cracker" data-type="bomb">
+        <button type="button"
+                class="cracker"
+                data-type="bomb">
           <span>💥</span>
           <strong>Bomb</strong>
           <small>Big explosion</small>
         </button>
+
       </div>
 
       <p class="hint">
@@ -79,26 +107,45 @@
         <span id="crackerCount">0</span>/5
       </p>
 
-      <button id="finalBtn" class="primary hidden">
-        Open Your Surprise 💝
+      <button id="finalBtn"
+              class="primary hidden"
+              type="button">
+        See Your Diwali Surprise ✨
       </button>
     </section>
 
-    <section id="finalScene" class="scene">
+    <!-- SCREEN 3: FINAL GREETING -->
+    <section id="finalScene"
+             class="scene"
+             aria-label="Happy Diwali greeting">
+
       <div class="final-content">
-        <div class="final-icon">🪔✨🪔</div>
-        <h2 id="greeting">Happy Diwali! ❤️</h2>
+
+        <div class="final-icon">
+          🪔 ✨ 🪔
+        </div>
+
+        <h2 id="greeting">
+          Happy Diwali! ❤️
+        </h2>
+
         <p>
-          May your life glow brighter than a
-          thousand diyas, and may every moment
-          bring happiness, love and beautiful
-          memories.
+          May your life glow brighter than a thousand
+          diyas, and may every moment bring happiness,
+          love, and beautiful memories.
         </p>
-        <button id="replayBtn" class="primary">
+
+        <button id="replayBtn"
+                class="primary"
+                type="button">
           Celebrate Again 🔄
         </button>
+
       </div>
     </section>
+
   </main>
+
+  <script src="script.js" defer></script>
 </body>
 </html>
